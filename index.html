@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/peta-lansia-desa.html << 'ENDOFFILE'
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -50,12 +51,7 @@ header p { font-size:11px; opacity:0.75; margin-top:1px; }
 .status-kritis { background:#fde8e8; color:#8b1a1a; }
 .card-info { font-size:11px; color:#5a7a5a; display:flex; flex-direction:column; gap:2px; }
 
-#map {
-  width: 100%;
-  height: 100%;
-  min-height: 600px;
-  z-index: 0;
-}
+#map { width:100%; height:100%; min-height:600px; z-index:0; }
 
 .popup-wrap { min-width:210px; }
 .popup-header { background:#2d5a27; color:#fff; padding:9px 13px; margin:-10px -14px 9px; border-radius:4px 4px 0 0; display:flex; align-items:center; gap:8px; }
@@ -94,11 +90,31 @@ header p { font-size:11px; opacity:0.75; margin-top:1px; }
 .form-group label { font-size:12px; color:#4a6a4a; font-weight:500; }
 .form-group input, .form-group select { padding:7px 10px; border:1.5px solid #c8dcc8; border-radius:7px; font-size:13px; outline:none; background:#f8fbf8; color:#1a2e1a; transition:border-color 0.2s; }
 .form-group input:focus, .form-group select:focus { border-color:#2d5a27; }
-.lokasi-field { display:flex; gap:6px; }
-.lokasi-field input { flex:1; }
-.btn-lokasi { padding:7px 10px; background:#e8f5e8; border:1.5px solid #a8d8a8; border-radius:7px; font-size:11px; color:#2d5a27; cursor:pointer; white-space:nowrap; font-weight:600; transition:all 0.15s; }
-.btn-lokasi:hover { background:#d0ead0; }
-.lokasi-hint { font-size:11px; color:#7a9a7a; margin-top:2px; }
+.form-group input:read-only { background:#f0f0f0; color:#666; }
+
+/* GEOCODING SECTION */
+.alamat-cari-wrap { display:flex; flex-direction:column; gap:6px; }
+.alamat-cari-row { display:flex; gap:6px; }
+.alamat-cari-row input { flex:1; }
+.btn-cari-alamat { padding:7px 12px; background:#2d5a27; border:none; border-radius:7px; font-size:12px; color:#fff; cursor:pointer; white-space:nowrap; font-weight:600; transition:all 0.15s; display:flex; align-items:center; gap:5px; }
+.btn-cari-alamat:hover { background:#245220; }
+.btn-cari-alamat:disabled { background:#9ab89a; cursor:not-allowed; }
+.geocode-results { background:#f8fbf8; border:1.5px solid #c8dcc8; border-radius:7px; max-height:160px; overflow-y:auto; display:none; }
+.geocode-results.show { display:block; }
+.geocode-item { padding:8px 11px; font-size:12px; cursor:pointer; border-bottom:1px solid #e8f0e8; color:#1a2e1a; line-height:1.4; transition:background 0.1s; }
+.geocode-item:last-child { border-bottom:none; }
+.geocode-item:hover { background:#e8f5e8; }
+.geocode-item .geo-name { font-weight:600; color:#2d5a27; }
+.geocode-item .geo-detail { font-size:11px; color:#6a8a6a; margin-top:2px; }
+.geocode-loading { padding:10px 11px; font-size:12px; color:#7a9a7a; font-style:italic; }
+.geocode-empty { padding:10px 11px; font-size:12px; color:#c44; }
+
+.koordinat-row { display:flex; gap:6px; margin-top:2px; }
+.koordinat-row input { flex:1; font-size:12px; background:#f0f0f0 !important; color:#666 !important; }
+.btn-pilih-peta { padding:7px 10px; background:#e8f5e8; border:1.5px solid #a8d8a8; border-radius:7px; font-size:11px; color:#2d5a27; cursor:pointer; white-space:nowrap; font-weight:600; transition:all 0.15s; }
+.btn-pilih-peta:hover { background:#d0ead0; }
+.lokasi-hint { font-size:11px; color:#7a9a7a; margin-top:3px; }
+
 .modal-footer { padding:12px 18px; border-top:1px solid #e8f0e8; display:flex; gap:8px; justify-content:flex-end; position:sticky; bottom:0; background:#fff; border-radius:0 0 12px 12px; }
 .btn-batal { padding:8px 16px; border:1.5px solid #c8dcc8; border-radius:8px; background:#fff; color:#4a6a4a; font-size:13px; cursor:pointer; }
 .btn-simpan { padding:8px 18px; background:#2d5a27; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
@@ -108,6 +124,9 @@ header p { font-size:11px; opacity:0.75; margin-top:1px; }
 .toast.show { transform:translateX(-50%) translateY(0); }
 .empty-state { text-align:center; padding:36px 20px; color:#7a9a7a; font-size:13px; }
 .empty-state .emoji { font-size:30px; margin-bottom:8px; }
+
+.lokasi-preview { background:#e8f5e8; border:1px solid #a8d8a8; border-radius:7px; padding:7px 10px; font-size:12px; color:#2d5a27; margin-top:4px; display:none; align-items:center; gap:6px; }
+.lokasi-preview.show { display:flex; }
 </style>
 </head>
 <body>
@@ -179,10 +198,11 @@ header p { font-size:11px; opacity:0.75; margin-top:1px; }
         <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="f-nama" placeholder="Pak Slamet Riyadi"></div>
         <div class="form-group"><label>Usia *</label><input type="number" id="f-usia" placeholder="70" min="60" max="120"></div>
         <div class="form-group"><label>RT / RW</label><input type="text" id="f-rt" placeholder="RT 01"></div>
-        <div class="form-group"><label>Alamat</label><input type="text" id="f-alamat" placeholder="Jl. Mawar No. 3"></div>
+        <div class="form-group"><label>Alamat (label)</label><input type="text" id="f-alamat" placeholder="Jl. Mawar No. 3"></div>
         <div class="form-group"><label>No. WA Keluarga</label><input type="text" id="f-keluarga" placeholder="6281234567890"></div>
         <div class="form-group"><label>Kader Pendamping</label><input type="text" id="f-kader" placeholder="Bu Sari"></div>
       </div>
+
       <div class="modal-section">Kesehatan</div>
       <div class="form-grid">
         <div class="form-group"><label>Status Kesehatan *</label>
@@ -198,15 +218,26 @@ header p { font-size:11px; opacity:0.75; margin-top:1px; }
         <div class="form-group"><label>Gula Darah</label><input type="text" id="f-gula" placeholder="Normal / 200 mg/dL"></div>
         <div class="form-group"><label>Berat Badan</label><input type="text" id="f-bb" placeholder="60 kg"></div>
       </div>
-      <div class="modal-section">Lokasi di Peta</div>
+
+      <div class="modal-section">📍 Lokasi di Peta</div>
       <div class="form-group">
-        <label>Koordinat *</label>
-        <div class="lokasi-field">
-          <input type="text" id="f-lat" placeholder="Latitude" readonly>
-          <input type="text" id="f-lng" placeholder="Longitude" readonly>
-          <button class="btn-lokasi" onclick="mulaiPilihLokasi()">📍 Pilih di Peta</button>
+        <label>Cari Alamat / Nama Tempat *</label>
+        <div class="alamat-cari-wrap">
+          <div class="alamat-cari-row">
+            <input type="text" id="f-cari-alamat" placeholder="Contoh: Jl. Mawar No. 3, Sukamaju, Sleman" onkeydown="if(event.key==='Enter'){cariAlamat();}">
+            <button class="btn-cari-alamat" id="btn-cari" onclick="cariAlamat()">🔍 Cari</button>
+          </div>
+          <div class="geocode-results" id="geocodeResults"></div>
+          <div class="lokasi-preview" id="lokasiPreview">
+            <span>📍</span><span id="lokasiPreviewText"></span>
+          </div>
+          <div class="koordinat-row">
+            <input type="text" id="f-lat" placeholder="Latitude" readonly>
+            <input type="text" id="f-lng" placeholder="Longitude" readonly>
+            <button class="btn-pilih-peta" onclick="mulaiPilihLokasi()">🖱️ Atau klik di peta</button>
+          </div>
+          <div class="lokasi-hint">Ketik alamat lalu klik Cari — atau klik langsung di peta satelit</div>
         </div>
-        <div class="lokasi-hint">Klik tombol lalu klik titik rumah di peta satelit</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -234,7 +265,6 @@ var warna = { sehat:"#4caf50", perhatian:"#ff9800", kritis:"#f44336" };
 var labelStatus = { sehat:"Sehat", perhatian:"Perlu Perhatian", kritis:"Kritis" };
 var badgeClass = { sehat:"status-sehat", perhatian:"status-perhatian", kritis:"status-kritis" };
 
-// TILE LAYERS
 var tileLayers = {
   osm:    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution:"© OpenStreetMap", maxZoom:19 }),
   satelit:L.tileLayer("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", { attribution:"© Google Maps", maxZoom:20 }),
@@ -245,11 +275,7 @@ var centerLat = dataLansia.reduce(function(s,d){return s+d.lat;},0)/dataLansia.l
 var centerLng = dataLansia.reduce(function(s,d){return s+d.lng;},0)/dataLansia.length;
 var map = L.map("map").setView([centerLat, centerLng], 16);
 tileLayers.satelit.addTo(map);
-
-setTimeout(function () {
-  map.invalidateSize();
-}, 200);
-tileLayers.satelit.addTo(map);
+setTimeout(function(){ map.invalidateSize(); }, 200);
 var layerAktif = "satelit";
 
 document.querySelectorAll(".layer-btn").forEach(function(btn) {
@@ -264,7 +290,6 @@ document.querySelectorAll(".layer-btn").forEach(function(btn) {
   });
 });
 
-// MARKER
 function buatIcon(status) {
   var c = warna[status];
   return L.divIcon({ className:"", html:"<div style=\"width:16px;height:16px;border-radius:50%;background:"+c+";border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);\"></div>", iconSize:[16,16], iconAnchor:[8,8] });
@@ -285,19 +310,8 @@ function buatPopup(d) {
     +"<div class=\"popup-row\"><span class=\"popup-label\">Kader</span><span class=\"popup-val\">"+(d.kader||"-")+"</span></div>"
     +"<div class=\"popup-footer\">Kunjungan terakhir: "+(d.kunjungan||"-")+"</div>"
     +"<div style='margin-top:10px;text-align:center'>"
-+"<button onclick='hapusLansia("+d.id+")' "
-+"style='background:#f44336;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;'>"
-+"🗑 Hapus Data"
-+"</button>"
-+"</div>"
-    +"<div style='margin-top:10px;text-align:center'>"
-+"<button onclick='hapusLansia("+d.id+")' "
-+"style='background:#f44336;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;'>"
-+"🗑 Hapus Data"
-+"</button>"
-+"</div>"
-
-+"</div></div>";
+    +"<button onclick='hapusLansia("+d.id+")' style='background:#f44336;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;'>🗑 Hapus Data</button>"
+    +"</div>"
     +"</div></div>";
 }
 
@@ -312,7 +326,6 @@ L.marker([-7.2545,110.4300],{icon:L.divIcon({className:"",html:"<div style=\"wid
   .addTo(map)
   .bindPopup("<div class=\"popup-wrap\"><div class=\"popup-header\" style=\"background:#1976d2;\"><div class=\"popup-avatar\">P</div><div><div class=\"popup-nama\">Puskesmas Sukamaju</div><div class=\"popup-usia\">Fasilitas Kesehatan Terdekat</div></div></div><div class=\"popup-row\"><span class=\"popup-label\">Telepon</span><span class=\"popup-val\">(0271) 123456</span></div></div>",{maxWidth:240});
 
-// SIDEBAR
 var filterAktif="semua", searchQuery="", selectedId=null;
 
 function renderSidebar() {
@@ -337,11 +350,8 @@ function renderSidebar() {
       +"<span>"+((!d.penyakit||d.penyakit==="-")?"Tidak ada penyakit kronik":d.penyakit)+"</span>"
       +"<span>"+(d.kunjungan||"Belum dikunjungi")+"</span>"
       +"<div style='margin-top:6px'>"
-+"<button onclick='event.stopPropagation();hapusLansia("+d.id+")' "
-+"style='background:#f44336;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;'>"
-+"🗑 Hapus"
-+"</button>"
-+"</div>"
+      +"<button onclick='event.stopPropagation();hapusLansia("+d.id+")' style='background:#f44336;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;'>🗑 Hapus</button>"
+      +"</div>"
       +"</div></div>";
   });
   list.innerHTML = html;
@@ -375,7 +385,6 @@ document.getElementById("searchInput").addEventListener("input", function(e){
   renderSidebar();
 });
 
-// TOAST
 function tampilToast(msg) {
   var t = document.getElementById("toast");
   t.textContent = msg;
@@ -383,19 +392,93 @@ function tampilToast(msg) {
   setTimeout(function(){ t.classList.remove("show"); }, 2500);
 }
 
-// MODAL
+// ── GEOCODING ──────────────────────────────────────────────────────────────
+var geocodeDebounce = null;
+var markerCariSementara = null;
+
+function cariAlamat() {
+  var q = document.getElementById("f-cari-alamat").value.trim();
+  if(!q) { tampilToast("Ketik alamat terlebih dahulu"); return; }
+
+  var btn = document.getElementById("btn-cari");
+  var hasil = document.getElementById("geocodeResults");
+  btn.disabled = true;
+  btn.textContent = "⏳ Mencari...";
+  hasil.innerHTML = "<div class=\"geocode-loading\">Mencari alamat...</div>";
+  hasil.classList.add("show");
+
+var url =
+"https://nominatim.openstreetmap.org/search?format=json&limit=10&countrycodes=id&q="
++ encodeURIComponent(q);
+
+  fetch(url, { headers: { "Accept-Language": "id,en" } })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = "🔍 Cari";
+      if(!data.length) {
+        hasil.innerHTML = "<div class=\"geocode-empty\">❌ Alamat tidak ditemukan. Coba tambah nama kota/desa.</div>";
+        return;
+      }
+      var html = "";
+      data.forEach(function(item, i) {
+        var nama = item.name || item.display_name.split(",")[0];
+        var detail = item.display_name;
+        html += "<div class=\"geocode-item\" onclick=\"pilihHasilGeocode("+item.lat+","+item.lon+","+JSON.stringify(detail).replace(/'/g,"&#39;")+")\">"
+          +"<div class=\"geo-name\">"+nama+"</div>"
+          +"<div class=\"geo-detail\">"+detail+"</div>"
+          +"</div>";
+      });
+      hasil.innerHTML = html;
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = "🔍 Cari";
+      hasil.innerHTML = "<div class=\"geocode-empty\">❌ Gagal mencari. Periksa koneksi internet.</div>";
+    });
+}
+
+function pilihHasilGeocode(lat, lng, displayName) {
+  lat = parseFloat(lat);
+  lng = parseFloat(lng);
+
+  document.getElementById("f-lat").value = lat.toFixed(6);
+  document.getElementById("f-lng").value = lng.toFixed(6);
+
+  var preview = document.getElementById("lokasiPreview");
+  document.getElementById("lokasiPreviewText").textContent = displayName.length > 80 ? displayName.substring(0,80)+"..." : displayName;
+  preview.classList.add("show");
+
+  document.getElementById("geocodeResults").classList.remove("show");
+
+  // Tampilkan marker sementara di peta (di belakang modal)
+  if(markerCariSementara) map.removeLayer(markerCariSementara);
+  markerCariSementara = L.marker([lat,lng], {
+    icon: L.divIcon({className:"",html:"<div style=\"width:18px;height:18px;border-radius:50%;background:#9c27b0;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);\"></div>",iconSize:[18,18],iconAnchor:[9,9]})
+  }).addTo(map).bindPopup("Lokasi dipilih: "+displayName.split(",")[0]).openPopup();
+
+  map.setView([lat,lng], 17, {animate:true});
+  tampilToast("✅ Lokasi ditemukan!");
+}
+
+// ── MODAL ──────────────────────────────────────────────────────────────────
 function bukaModalTambah() {
-  ["nama","usia","rt","alamat","keluarga","kader","penyakit","obat","tensi","gula","bb","lat","lng"].forEach(function(f){
+  ["nama","usia","rt","alamat","keluarga","kader","penyakit","obat","tensi","gula","bb","lat","lng","cari-alamat"].forEach(function(f){
     var el = document.getElementById("f-"+f);
     if(el) el.value = "";
   });
   document.getElementById("f-status").value = "sehat";
+  document.getElementById("geocodeResults").classList.remove("show");
+  document.getElementById("lokasiPreview").classList.remove("show");
   document.getElementById("modalOverlay").classList.add("show");
 }
 
 function tutupModal() {
   batalPilihLokasi();
+  if(markerCariSementara){ map.removeLayer(markerCariSementara); markerCariSementara=null; }
   document.getElementById("modalOverlay").classList.remove("show");
+  document.getElementById("geocodeResults").classList.remove("show");
+  document.getElementById("lokasiPreview").classList.remove("show");
 }
 
 function simpanLansia() {
@@ -406,7 +489,7 @@ function simpanLansia() {
 
   if(!nama){ tampilToast("Nama tidak boleh kosong"); return; }
   if(!usia||usia<60){ tampilToast("Usia minimal 60 tahun"); return; }
-  if(isNaN(lat)||isNaN(lng)){ tampilToast("Pilih lokasi di peta terlebih dahulu"); return; }
+  if(isNaN(lat)||isNaN(lng)){ tampilToast("Pilih lokasi — cari alamat atau klik di peta"); return; }
 
   var today = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
   var ids = dataLansia.map(function(d){return d.id;});
@@ -427,6 +510,7 @@ function simpanLansia() {
     lat:lat, lng:lng, kunjungan:today
   };
 
+  if(markerCariSementara){ map.removeLayer(markerCariSementara); markerCariSementara=null; }
   dataLansia.push(lansia);
   tambahMarker(lansia);
   map.setView([lat,lng],18,{animate:true});
@@ -437,42 +521,10 @@ function simpanLansia() {
   tampilToast("Data "+nama+" berhasil ditambahkan!");
 }
 
-// PILIH LOKASI
+// ── PILIH LOKASI DI PETA ───────────────────────────────────────────────────
 var modePilihLokasi = false;
 var markerSementara = null;
-function hapusLansia(id) {
 
-  var data = dataLansia.find(function(d){
-    return d.id === id;
-  });
-
-  if(!data) return;
-
-  if(!confirm("Yakin ingin menghapus data " + data.nama + " ?")){
-    return;
-  }
-
-  // Hapus marker dari peta
-  if(markers[id]){
-    map.removeLayer(markers[id]);
-    delete markers[id];
-  }
-
-  // Hapus dari array
-  dataLansia = dataLansia.filter(function(d){
-    return d.id !== id;
-  });
-
-  // Reset pilihan
-  if(selectedId === id){
-    selectedId = null;
-  }
-
-  updateStats();
-  renderSidebar();
-
-  tampilToast("Data " + data.nama + " berhasil dihapus");
-}
 function mulaiPilihLokasi() {
   modePilihLokasi = true;
   document.getElementById("modalOverlay").classList.remove("show");
@@ -493,6 +545,8 @@ map.on("click", function(e) {
   var lng = e.latlng.lng;
   document.getElementById("f-lat").value = lat.toFixed(6);
   document.getElementById("f-lng").value = lng.toFixed(6);
+  document.getElementById("lokasiPreviewText").textContent = "Koordinat: "+lat.toFixed(5)+", "+lng.toFixed(5);
+  document.getElementById("lokasiPreview").classList.add("show");
   if(markerSementara) map.removeLayer(markerSementara);
   markerSementara = L.marker([lat,lng], {
     icon: L.divIcon({className:"",html:"<div style=\"width:18px;height:18px;border-radius:50%;background:#9c27b0;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);\"></div>",iconSize:[18,18],iconAnchor:[9,9]})
@@ -504,7 +558,20 @@ map.on("click", function(e) {
   tampilToast("Lokasi berhasil dipilih!");
 });
 
-// CETAK LAPORAN
+// ── HAPUS ──────────────────────────────────────────────────────────────────
+function hapusLansia(id) {
+  var data = dataLansia.find(function(d){ return d.id === id; });
+  if(!data) return;
+  if(!confirm("Yakin ingin menghapus data " + data.nama + " ?")) return;
+  if(markers[id]){ map.removeLayer(markers[id]); delete markers[id]; }
+  dataLansia = dataLansia.filter(function(d){ return d.id !== id; });
+  if(selectedId === id) selectedId = null;
+  updateStats();
+  renderSidebar();
+  tampilToast("Data " + data.nama + " berhasil dihapus");
+}
+
+// ── CETAK ──────────────────────────────────────────────────────────────────
 function cetakLaporan() {
   var tgl = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
   var sehat = dataLansia.filter(function(d){return d.status==="sehat";});
@@ -581,9 +648,10 @@ function cetakLaporan() {
   setTimeout(function(){ w.print(); }, 500);
 }
 
-// INIT
 updateStats();
 renderSidebar();
 </script>
 </body>
 </html>
+ENDOFFILE
+echo "done"
