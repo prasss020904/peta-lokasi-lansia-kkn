@@ -284,6 +284,20 @@ function buatPopup(d) {
     +"<div class=\"popup-row\"><span class=\"popup-label\">Gula Darah</span><span class=\"popup-val\">"+(d.gula||"-")+"</span></div>"
     +"<div class=\"popup-row\"><span class=\"popup-label\">Kader</span><span class=\"popup-val\">"+(d.kader||"-")+"</span></div>"
     +"<div class=\"popup-footer\">Kunjungan terakhir: "+(d.kunjungan||"-")+"</div>"
+    +"<div style='margin-top:10px;text-align:center'>"
++"<button onclick='hapusLansia("+d.id+")' "
++"style='background:#f44336;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;'>"
++"🗑 Hapus Data"
++"</button>"
++"</div>"
+    +"<div style='margin-top:10px;text-align:center'>"
++"<button onclick='hapusLansia("+d.id+")' "
++"style='background:#f44336;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;'>"
++"🗑 Hapus Data"
++"</button>"
++"</div>"
+
++"</div></div>";
     +"</div></div>";
 }
 
@@ -322,6 +336,12 @@ function renderSidebar() {
       +"<span>"+d.usia+" tahun - "+d.rt+"</span>"
       +"<span>"+((!d.penyakit||d.penyakit==="-")?"Tidak ada penyakit kronik":d.penyakit)+"</span>"
       +"<span>"+(d.kunjungan||"Belum dikunjungi")+"</span>"
+      +"<div style='margin-top:6px'>"
++"<button onclick='event.stopPropagation();hapusLansia("+d.id+")' "
++"style='background:#f44336;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;'>"
++"🗑 Hapus"
++"</button>"
++"</div>"
       +"</div></div>";
   });
   list.innerHTML = html;
@@ -420,7 +440,39 @@ function simpanLansia() {
 // PILIH LOKASI
 var modePilihLokasi = false;
 var markerSementara = null;
+function hapusLansia(id) {
 
+  var data = dataLansia.find(function(d){
+    return d.id === id;
+  });
+
+  if(!data) return;
+
+  if(!confirm("Yakin ingin menghapus data " + data.nama + " ?")){
+    return;
+  }
+
+  // Hapus marker dari peta
+  if(markers[id]){
+    map.removeLayer(markers[id]);
+    delete markers[id];
+  }
+
+  // Hapus dari array
+  dataLansia = dataLansia.filter(function(d){
+    return d.id !== id;
+  });
+
+  // Reset pilihan
+  if(selectedId === id){
+    selectedId = null;
+  }
+
+  updateStats();
+  renderSidebar();
+
+  tampilToast("Data " + data.nama + " berhasil dihapus");
+}
 function mulaiPilihLokasi() {
   modePilihLokasi = true;
   document.getElementById("modalOverlay").classList.remove("show");
