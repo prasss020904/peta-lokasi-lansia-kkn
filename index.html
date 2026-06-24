@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peta Lansia Desa - KKN</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#f0f4f0; color:#1a2e1a; height:100vh; display:flex; flex-direction:column; }
+
+header { background:#2d5a27; color:#fff; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-icon { width:34px; height:34px; background:rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+header h1 { font-size:15px; font-weight:600; }
+header p { font-size:11px; opacity:0.75; margin-top:1px; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.header-stats { display:flex; gap:8px; }
+.stat-pill { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:3px 10px; font-size:11px; display:flex; align-items:center; gap:5px; }
+.stat-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.btn-header { padding:6px 14px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s; }
+.btn-tambah { background:#fff; color:#2d5a27; }
+.btn-tambah:hover { background:#e8f5e8; }
+.btn-cetak { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); }
+.btn-cetak:hover { background:rgba(255,255,255,0.25); }
+.layer-toggle { display:flex; gap:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:3px; }
+.layer-btn { padding:3px 10px; border-radius:6px; border:none; font-size:11px; cursor:pointer; color:rgba(255,255,255,0.7); background:transparent; transition:all 0.15s; font-weight:500; }
+.layer-btn.active { background:#fff; color:#2d5a27; font-weight:700; }
+
+.main { display:flex; flex:1; overflow:hidden; }
+.sidebar { width:285px; background:#fff; border-right:1px solid #d8e8d8; display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; }
+.sidebar-search { padding:10px; border-bottom:1px solid #e8f0e8; }
+.search-input { width:100%; padding:7px 11px; border:1.5px solid #c8dcc8; border-radius:8px; font-size:13px; outline:none; background:#f8fbf8; color:#1a2e1a; transition:border-color 0.2s; }
+.search-input:focus { border-color:#2d5a27; }
+.filter-row { display:flex; gap:5px; margin-top:7px; flex-wrap:wrap; }
+.filter-btn { padding:3px 9px; border-radius:20px; border:1.5px solid #c8dcc8; background:transparent; font-size:11px; cursor:pointer; color:#4a6e4a; transition:all 0.15s; display:flex; align-items:center; gap:3px; }
+.filter-btn.active,.filter-btn:hover { background:#2d5a27; color:#fff; border-color:#2d5a27; }
+.filter-dot { width:7px; height:7px; border-radius:50%; }
+.sidebar-list { flex:1; overflow-y:auto; padding:7px; }
+.sidebar-list::-webkit-scrollbar { width:4px; }
+.sidebar-list::-webkit-scrollbar-thumb { background:#c8dcc8; border-radius:2px; }
+.lansia-card { padding:9px 11px; border-radius:8px; border:1.5px solid #e8f0e8; margin-bottom:5px; cursor:pointer; transition:all 0.15s; background:#fff; }
+.lansia-card:hover,.lansia-card.selected { border-color:#2d5a27; background:#f0f8f0; }
+.card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:3px; }
+.card-nama { font-size:12.5px; font-weight:600; color:#1a2e1a; }
+.status-badge { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:500; }
+.status-sehat { background:#d4f0d4; color:#1a5c1a; }
+.status-perhatian { background:#fff3cd; color:#7a5500; }
+.status-kritis { background:#fde8e8; color:#8b1a1a; }
+.card-info { font-size:11px; color:#5a7a5a; display:flex; flex-direction:column; gap:2px; }
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  z-index: 0;
+}
+
+.popup-wrap { min-width:210px; }
+.popup-header { background:#2d5a27; color:#fff; padding:9px 13px; margin:-10px -14px 9px; border-radius:4px 4px 0 0; display:flex; align-items:center; gap:8px; }
+.popup-avatar { width:30px; height:30px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.popup-nama { font-size:13px; font-weight:600; }
+.popup-usia { font-size:11px; opacity:0.8; }
+.popup-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #e8f0e8; font-size:12px; }
+.popup-row:last-child { border-bottom:none; }
+.popup-label { color:#5a7a5a; }
+.popup-val { font-weight:500; color:#1a2e1a; max-width:130px; text-align:right; }
+.popup-status { display:inline-block; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:500; }
+.popup-footer { margin-top:7px; padding-top:7px; border-top:1px solid #e8f0e8; font-size:11px; color:#5a7a5a; }
+
+.legend { position:absolute; bottom:28px; right:10px; background:#fff; border:1px solid #d8e8d8; border-radius:8px; padding:9px 13px; z-index:1000; font-size:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+.legend-title { font-weight:600; font-size:10px; color:#2d5a27; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:7px; }
+.legend-item { display:flex; align-items:center; gap:7px; margin-bottom:4px; color:#3a5a3a; font-size:11px; }
+.legend-dot { width:11px; height:11px; border-radius:50%; border:2px solid rgba(0,0,0,0.12); flex-shrink:0; }
+
+.hint-bar { position:absolute; top:12px; left:50%; transform:translateX(-50%); background:#2d5a27; color:#fff; padding:8px 18px; border-radius:20px; font-size:13px; z-index:1000; box-shadow:0 2px 10px rgba(0,0,0,0.2); display:none; align-items:center; gap:8px; }
+.hint-bar.show { display:flex; }
+.hint-cancel { background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:12px; padding:2px 10px; font-size:12px; cursor:pointer; margin-left:6px; }
+.hint-cancel:hover { background:rgba(255,255,255,0.35); }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:2000; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; border-radius:12px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+.modal-header { background:#2d5a27; color:#fff; padding:14px 18px; border-radius:12px 12px 0 0; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; }
+.modal-title { font-size:15px; font-weight:600; }
+.modal-close { background:rgba(255,255,255,0.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+.modal-close:hover { background:rgba(255,255,255,0.35); }
+.modal-body { padding:16px 18px; }
+.modal-section { font-size:11px; font-weight:700; color:#2d5a27; text-transform:uppercase; letter-spacing:0.06em; margin:14px 0 8px; }
+.modal-section:first-child { margin-top:0; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-group label { font-size:12px; color:#4a6a4a; font-weight:500; }
+.form-group input, .form-group select { padding:7px 10px; border:1.5px solid #c8dcc8; border-radius:7px; font-size:13px; outline:none; background:#f8fbf8; color:#1a2e1a; transition:border-color 0.2s; }
+.form-group input:focus, .form-group select:focus { border-color:#2d5a27; }
+.lokasi-field { display:flex; gap:6px; }
+.lokasi-field input { flex:1; }
+.btn-lokasi { padding:7px 10px; background:#e8f5e8; border:1.5px solid #a8d8a8; border-radius:7px; font-size:11px; color:#2d5a27; cursor:pointer; white-space:nowrap; font-weight:600; transition:all 0.15s; }
+.btn-lokasi:hover { background:#d0ead0; }
+.lokasi-hint { font-size:11px; color:#7a9a7a; margin-top:2px; }
+.modal-footer { padding:12px 18px; border-top:1px solid #e8f0e8; display:flex; gap:8px; justify-content:flex-end; position:sticky; bottom:0; background:#fff; border-radius:0 0 12px 12px; }
+.btn-batal { padding:8px 16px; border:1.5px solid #c8dcc8; border-radius:8px; background:#fff; color:#4a6a4a; font-size:13px; cursor:pointer; }
+.btn-simpan { padding:8px 18px; background:#2d5a27; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+.btn-simpan:hover { background:#245220; }
+
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:#1a2e1a; color:#fff; padding:10px 20px; border-radius:20px; font-size:13px; z-index:3000; transition:transform 0.3s; pointer-events:none; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.empty-state { text-align:center; padding:36px 20px; color:#7a9a7a; font-size:13px; }
+.empty-state .emoji { font-size:30px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="header-icon">🗺️</div>
+    <div>
+      <h1>Peta Lansia Desa Sukamaju</h1>
+      <p>Sistem Pemantauan Kesehatan Lansia — KKN 2024</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="layer-toggle">
+      <button class="layer-btn" data-layer="osm">Peta</button>
+      <button class="layer-btn active" data-layer="satelit">Satelit</button>
+      <button class="layer-btn" data-layer="hybrid">Hybrid</button>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill"><div class="stat-dot" style="background:#4caf50"></div><span id="count-sehat">0</span> Sehat</div>
+      <div class="stat-pill"><div class="stat-dot" style="background:#ff9800"></div><span id="count-perhatian">0</span> Perhatian</div>
+      <div class="stat-pill"><div class="stat-dot" style="background:#f44336"></div><span id="count-kritis">0</span> Kritis</div>
+    </div>
+    <button class="btn-header btn-tambah" onclick="bukaModalTambah()">➕ Tambah Lansia</button>
+    <button class="btn-header btn-cetak" onclick="cetakLaporan()">🖨️ Cetak Laporan</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-search">
+      <input class="search-input" type="text" id="searchInput" placeholder="🔍  Cari nama lansia...">
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="semua">Semua</button>
+        <button class="filter-btn" data-filter="sehat"><div class="filter-dot" style="background:#4caf50"></div>Sehat</button>
+        <button class="filter-btn" data-filter="perhatian"><div class="filter-dot" style="background:#ff9800"></div>Perhatian</button>
+        <button class="filter-btn" data-filter="kritis"><div class="filter-dot" style="background:#f44336"></div>Kritis</button>
+      </div>
+    </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </div>
+
+  <div style="position:relative;flex:1;">
+    <div id="map"></div>
+    <div class="hint-bar" id="hintBar">
+      📍 Klik lokasi di peta untuk menentukan titik rumah
+      <button class="hint-cancel" onclick="batalPilihLokasi()">Batal</button>
+    </div>
+    <div class="legend">
+      <div class="legend-title">Status Kesehatan</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div>Sehat</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff9800"></div>Perlu Perhatian</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f44336"></div>Kritis</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2196f3;border-radius:4px;"></div>Puskesmas</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">➕ Tambah Data Lansia</span>
+      <button class="modal-close" onclick="tutupModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">Data Diri</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="f-nama" placeholder="Pak Slamet Riyadi"></div>
+        <div class="form-group"><label>Usia *</label><input type="number" id="f-usia" placeholder="70" min="60" max="120"></div>
+        <div class="form-group"><label>RT / RW</label><input type="text" id="f-rt" placeholder="RT 01"></div>
+        <div class="form-group"><label>Alamat</label><input type="text" id="f-alamat" placeholder="Jl. Mawar No. 3"></div>
+        <div class="form-group"><label>No. WA Keluarga</label><input type="text" id="f-keluarga" placeholder="6281234567890"></div>
+        <div class="form-group"><label>Kader Pendamping</label><input type="text" id="f-kader" placeholder="Bu Sari"></div>
+      </div>
+      <div class="modal-section">Kesehatan</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Status Kesehatan *</label>
+          <select id="f-status">
+            <option value="sehat">Sehat</option>
+            <option value="perhatian">Perlu Perhatian</option>
+            <option value="kritis">Kritis</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Penyakit / Riwayat</label><input type="text" id="f-penyakit" placeholder="Hipertensi, Diabetes"></div>
+        <div class="form-group"><label>Obat Rutin</label><input type="text" id="f-obat" placeholder="Amlodipin 5mg"></div>
+        <div class="form-group"><label>Tekanan Darah</label><input type="text" id="f-tensi" placeholder="120/80"></div>
+        <div class="form-group"><label>Gula Darah</label><input type="text" id="f-gula" placeholder="Normal / 200 mg/dL"></div>
+        <div class="form-group"><label>Berat Badan</label><input type="text" id="f-bb" placeholder="60 kg"></div>
+      </div>
+      <div class="modal-section">Lokasi di Peta</div>
+      <div class="form-group">
+        <label>Koordinat *</label>
+        <div class="lokasi-field">
+          <input type="text" id="f-lat" placeholder="Latitude" readonly>
+          <input type="text" id="f-lng" placeholder="Longitude" readonly>
+          <button class="btn-lokasi" onclick="mulaiPilihLokasi()">📍 Pilih di Peta</button>
+        </div>
+        <div class="lokasi-hint">Klik tombol lalu klik titik rumah di peta satelit</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-batal" onclick="tutupModal()">Batal</button>
+      <button class="btn-simpan" onclick="simpanLansia()">Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var dataLansia = [
+  { id:1, nama:"Pak Slamet Riyadi", usia:72, rt:"RT 01", alamat:"Jl. Mawar No. 3", penyakit:"Hipertensi", obat:"Amlodipin 5mg", keluarga:"6281234101", kader:"Bu Sari", tensi:"140/90", gula:"Normal", bb:"62 kg", status:"perhatian", lat:-7.2505, lng:110.4310, kunjungan:"15 Jun 2024" },
+  { id:2, nama:"Bu Sumiati", usia:68, rt:"RT 01", alamat:"Jl. Mawar No. 7", penyakit:"Diabetes", obat:"Metformin 500mg", keluarga:"6281234102", kader:"Bu Sari", tensi:"120/80", gula:"250 mg/dL", bb:"58 kg", status:"kritis", lat:-7.2520, lng:110.4325, kunjungan:"10 Jun 2024" },
+  { id:3, nama:"Pak Haryono", usia:65, rt:"RT 02", alamat:"Jl. Melati No. 12", penyakit:"-", obat:"-", keluarga:"6281234103", kader:"Pak Budi", tensi:"118/75", gula:"Normal", bb:"70 kg", status:"sehat", lat:-7.2490, lng:110.4290, kunjungan:"20 Jun 2024" },
+  { id:4, nama:"Bu Warsini", usia:74, rt:"RT 02", alamat:"Jl. Melati No. 5", penyakit:"Asam Urat", obat:"Allopurinol 100mg", keluarga:"6281234104", kader:"Pak Budi", tensi:"130/85", gula:"Normal", bb:"55 kg", status:"perhatian", lat:-7.2498, lng:110.4275, kunjungan:"18 Jun 2024" },
+  { id:5, nama:"Pak Suharto", usia:70, rt:"RT 03", alamat:"Jl. Anggrek No. 2", penyakit:"-", obat:"-", keluarga:"6281234105", kader:"Bu Rina", tensi:"115/75", gula:"Normal", bb:"68 kg", status:"sehat", lat:-7.2515, lng:110.4260, kunjungan:"22 Jun 2024" },
+  { id:6, nama:"Bu Karsini", usia:78, rt:"RT 03", alamat:"Jl. Anggrek No. 9", penyakit:"Hipertensi, Kolesterol", obat:"Captopril, Simvastatin", keluarga:"6281234106", kader:"Bu Rina", tensi:"160/100", gula:"Normal", bb:"52 kg", status:"kritis", lat:-7.2530, lng:110.4245, kunjungan:"8 Jun 2024" },
+  { id:7, nama:"Pak Poniman", usia:66, rt:"RT 04", alamat:"Jl. Dahlia No. 4", penyakit:"-", obat:"-", keluarga:"6281234107", kader:"Pak Joko", tensi:"122/80", gula:"Normal", bb:"72 kg", status:"sehat", lat:-7.2475, lng:110.4330, kunjungan:"21 Jun 2024" },
+  { id:8, nama:"Bu Suwarsih", usia:71, rt:"RT 04", alamat:"Jl. Dahlia No. 11", penyakit:"Osteoporosis", obat:"Kalsium + Vit D", keluarga:"6281234108", kader:"Pak Joko", tensi:"125/82", gula:"Normal", bb:"49 kg", status:"perhatian", lat:-7.2460, lng:110.4345, kunjungan:"17 Jun 2024" }
+];
+
+var warna = { sehat:"#4caf50", perhatian:"#ff9800", kritis:"#f44336" };
+var labelStatus = { sehat:"Sehat", perhatian:"Perlu Perhatian", kritis:"Kritis" };
+var badgeClass = { sehat:"status-sehat", perhatian:"status-perhatian", kritis:"status-kritis" };
+
+// TILE LAYERS
+var tileLayers = {
+  osm:    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution:"© OpenStreetMap", maxZoom:19 }),
+  satelit:L.tileLayer("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", { attribution:"© Google Maps", maxZoom:20 }),
+  hybrid: L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", { attribution:"© Google Maps", maxZoom:20 })
+};
+
+var centerLat = dataLansia.reduce(function(s,d){return s+d.lat;},0)/dataLansia.length;
+var centerLng = dataLansia.reduce(function(s,d){return s+d.lng;},0)/dataLansia.length;
+var map = L.map("map").setView([centerLat, centerLng], 16);
+tileLayers.satelit.addTo(map);
+
+setTimeout(function () {
+  map.invalidateSize();
+}, 200);
+tileLayers.satelit.addTo(map);
+var layerAktif = "satelit";
+
+document.querySelectorAll(".layer-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    var layer = btn.dataset.layer;
+    if(layer === layerAktif) return;
+    map.removeLayer(tileLayers[layerAktif]);
+    tileLayers[layer].addTo(map);
+    layerAktif = layer;
+    document.querySelectorAll(".layer-btn").forEach(function(b){ b.classList.remove("active"); });
+    btn.classList.add("active");
+  });
+});
+
+// MARKER
+function buatIcon(status) {
+  var c = warna[status];
+  return L.divIcon({ className:"", html:"<div style=\"width:16px;height:16px;border-radius:50%;background:"+c+";border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);\"></div>", iconSize:[16,16], iconAnchor:[8,8] });
+}
+
+function buatPopup(d) {
+  var ini = d.nama.split(" ").map(function(w){return w[0];}).slice(0,2).join("");
+  return "<div class=\"popup-wrap\">"
+    +"<div class=\"popup-header\"><div class=\"popup-avatar\">"+ini+"</div>"
+    +"<div><div class=\"popup-nama\">"+d.nama+"</div><div class=\"popup-usia\">"+d.usia+" tahun - "+d.rt+"</div></div></div>"
+    +"<div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Status</span><span class=\"popup-status "+badgeClass[d.status]+"\">"+labelStatus[d.status]+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Alamat</span><span class=\"popup-val\">"+(d.alamat||"-")+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Penyakit</span><span class=\"popup-val\">"+(d.penyakit||"-")+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Obat</span><span class=\"popup-val\">"+(d.obat||"-")+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Tensi</span><span class=\"popup-val\">"+(d.tensi||"-")+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Gula Darah</span><span class=\"popup-val\">"+(d.gula||"-")+"</span></div>"
+    +"<div class=\"popup-row\"><span class=\"popup-label\">Kader</span><span class=\"popup-val\">"+(d.kader||"-")+"</span></div>"
+    +"<div class=\"popup-footer\">Kunjungan terakhir: "+(d.kunjungan||"-")+"</div>"
+    +"</div></div>";
+}
+
+var markers = {};
+function tambahMarker(d) {
+  markers[d.id] = L.marker([d.lat,d.lng],{icon:buatIcon(d.status)})
+    .addTo(map).bindPopup(buatPopup(d),{maxWidth:260});
+}
+dataLansia.forEach(function(d){ tambahMarker(d); });
+
+L.marker([-7.2545,110.4300],{icon:L.divIcon({className:"",html:"<div style=\"width:28px;height:28px;border-radius:6px;background:#2196f3;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:14px;\">+</div>",iconSize:[28,28],iconAnchor:[14,14]})})
+  .addTo(map)
+  .bindPopup("<div class=\"popup-wrap\"><div class=\"popup-header\" style=\"background:#1976d2;\"><div class=\"popup-avatar\">P</div><div><div class=\"popup-nama\">Puskesmas Sukamaju</div><div class=\"popup-usia\">Fasilitas Kesehatan Terdekat</div></div></div><div class=\"popup-row\"><span class=\"popup-label\">Telepon</span><span class=\"popup-val\">(0271) 123456</span></div></div>",{maxWidth:240});
+
+// SIDEBAR
+var filterAktif="semua", searchQuery="", selectedId=null;
+
+function renderSidebar() {
+  var list = document.getElementById("sidebarList");
+  var filtered = dataLansia.filter(function(d) {
+    var f = filterAktif==="semua" || d.status===filterAktif;
+    var s = d.nama.toLowerCase().indexOf(searchQuery.toLowerCase()) >= 0
+         || d.rt.toLowerCase().indexOf(searchQuery.toLowerCase()) >= 0;
+    return f && s;
+  });
+  if(!filtered.length){
+    list.innerHTML = "<div class=\"empty-state\"><div class=\"emoji\">🔍</div>Tidak ada data</div>";
+    return;
+  }
+  var html = "";
+  filtered.forEach(function(d) {
+    html += "<div class=\"lansia-card"+(selectedId===d.id?" selected":"")+"\" onclick=\"pilihLansia("+d.id+")\">"
+      +"<div class=\"card-top\"><div class=\"card-nama\">"+d.nama+"</div>"
+      +"<span class=\"status-badge "+badgeClass[d.status]+"\">"+labelStatus[d.status]+"</span></div>"
+      +"<div class=\"card-info\">"
+      +"<span>"+d.usia+" tahun - "+d.rt+"</span>"
+      +"<span>"+((!d.penyakit||d.penyakit==="-")?"Tidak ada penyakit kronik":d.penyakit)+"</span>"
+      +"<span>"+(d.kunjungan||"Belum dikunjungi")+"</span>"
+      +"</div></div>";
+  });
+  list.innerHTML = html;
+}
+
+function pilihLansia(id) {
+  selectedId = id;
+  var d = dataLansia.filter(function(x){return x.id===id;})[0];
+  if(!d) return;
+  map.setView([d.lat,d.lng],18,{animate:true});
+  markers[id].openPopup();
+  renderSidebar();
+}
+
+function updateStats() {
+  document.getElementById("count-sehat").textContent = dataLansia.filter(function(d){return d.status==="sehat";}).length;
+  document.getElementById("count-perhatian").textContent = dataLansia.filter(function(d){return d.status==="perhatian";}).length;
+  document.getElementById("count-kritis").textContent = dataLansia.filter(function(d){return d.status==="kritis";}).length;
+}
+
+document.querySelectorAll(".filter-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".filter-btn").forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    filterAktif = btn.dataset.filter;
+    renderSidebar();
+  });
+});
+document.getElementById("searchInput").addEventListener("input", function(e){
+  searchQuery = e.target.value;
+  renderSidebar();
+});
+
+// TOAST
+function tampilToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); }, 2500);
+}
+
+// MODAL
+function bukaModalTambah() {
+  ["nama","usia","rt","alamat","keluarga","kader","penyakit","obat","tensi","gula","bb","lat","lng"].forEach(function(f){
+    var el = document.getElementById("f-"+f);
+    if(el) el.value = "";
+  });
+  document.getElementById("f-status").value = "sehat";
+  document.getElementById("modalOverlay").classList.add("show");
+}
+
+function tutupModal() {
+  batalPilihLokasi();
+  document.getElementById("modalOverlay").classList.remove("show");
+}
+
+function simpanLansia() {
+  var nama = document.getElementById("f-nama").value.trim();
+  var usia = parseInt(document.getElementById("f-usia").value);
+  var lat  = parseFloat(document.getElementById("f-lat").value);
+  var lng  = parseFloat(document.getElementById("f-lng").value);
+
+  if(!nama){ tampilToast("Nama tidak boleh kosong"); return; }
+  if(!usia||usia<60){ tampilToast("Usia minimal 60 tahun"); return; }
+  if(isNaN(lat)||isNaN(lng)){ tampilToast("Pilih lokasi di peta terlebih dahulu"); return; }
+
+  var today = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+  var ids = dataLansia.map(function(d){return d.id;});
+  var newId = ids.length ? Math.max.apply(null,ids)+1 : 1;
+
+  var lansia = {
+    id:newId, nama:nama, usia:usia,
+    rt: document.getElementById("f-rt").value.trim()||"-",
+    alamat: document.getElementById("f-alamat").value.trim()||"-",
+    penyakit: document.getElementById("f-penyakit").value.trim()||"-",
+    obat: document.getElementById("f-obat").value.trim()||"-",
+    keluarga: document.getElementById("f-keluarga").value.trim()||"-",
+    kader: document.getElementById("f-kader").value.trim()||"-",
+    tensi: document.getElementById("f-tensi").value.trim()||"-",
+    gula: document.getElementById("f-gula").value.trim()||"-",
+    bb: document.getElementById("f-bb").value.trim()||"-",
+    status: document.getElementById("f-status").value,
+    lat:lat, lng:lng, kunjungan:today
+  };
+
+  dataLansia.push(lansia);
+  tambahMarker(lansia);
+  map.setView([lat,lng],18,{animate:true});
+  markers[newId].openPopup();
+  updateStats();
+  renderSidebar();
+  tutupModal();
+  tampilToast("Data "+nama+" berhasil ditambahkan!");
+}
+
+// PILIH LOKASI
+var modePilihLokasi = false;
+var markerSementara = null;
+
+function mulaiPilihLokasi() {
+  modePilihLokasi = true;
+  document.getElementById("modalOverlay").classList.remove("show");
+  document.getElementById("hintBar").classList.add("show");
+  map.getContainer().style.cursor = "crosshair";
+}
+
+function batalPilihLokasi() {
+  modePilihLokasi = false;
+  document.getElementById("hintBar").classList.remove("show");
+  map.getContainer().style.cursor = "";
+  if(markerSementara){ map.removeLayer(markerSementara); markerSementara=null; }
+}
+
+map.on("click", function(e) {
+  if(!modePilihLokasi) return;
+  var lat = e.latlng.lat;
+  var lng = e.latlng.lng;
+  document.getElementById("f-lat").value = lat.toFixed(6);
+  document.getElementById("f-lng").value = lng.toFixed(6);
+  if(markerSementara) map.removeLayer(markerSementara);
+  markerSementara = L.marker([lat,lng], {
+    icon: L.divIcon({className:"",html:"<div style=\"width:18px;height:18px;border-radius:50%;background:#9c27b0;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);\"></div>",iconSize:[18,18],iconAnchor:[9,9]})
+  }).addTo(map).bindPopup("Lokasi baru").openPopup();
+  modePilihLokasi = false;
+  document.getElementById("hintBar").classList.remove("show");
+  map.getContainer().style.cursor = "";
+  document.getElementById("modalOverlay").classList.add("show");
+  tampilToast("Lokasi berhasil dipilih!");
+});
+
+// CETAK LAPORAN
+function cetakLaporan() {
+  var tgl = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  var sehat = dataLansia.filter(function(d){return d.status==="sehat";});
+  var perhatian = dataLansia.filter(function(d){return d.status==="perhatian";});
+  var kritis = dataLansia.filter(function(d){return d.status==="kritis";});
+
+  function buatBaris(list) {
+    if(!list.length) return "<tr><td colspan='8' style='padding:10px;color:#888;font-style:italic;'>Tidak ada data</td></tr>";
+    var rows = "";
+    for(var i=0;i<list.length;i++){
+      var d=list[i];
+      var bg = i%2===0?"#fff":"#f8fbf8";
+      rows += "<tr style='background:"+bg+"'>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee;font-weight:600'>"+d.nama+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee;text-align:center'>"+d.usia+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+d.rt+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+d.penyakit+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+d.obat+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+d.tensi+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+d.kader+"</td>"
+        +"<td style='padding:5px 8px;border-bottom:1px solid #eee'>"+(d.kunjungan||"-")+"</td>"
+        +"</tr>";
+    }
+    return rows;
+  }
+
+  function buatTabel(list) {
+    return "<table style='width:100%;border-collapse:collapse;font-size:12px;margin-top:6px'>"
+      +"<thead><tr style='background:#2d5a27;color:#fff'>"
+      +"<th style='padding:6px 8px;text-align:left'>Nama</th>"
+      +"<th style='padding:6px 8px;text-align:center'>Usia</th>"
+      +"<th style='padding:6px 8px;text-align:left'>RT</th>"
+      +"<th style='padding:6px 8px;text-align:left'>Penyakit</th>"
+      +"<th style='padding:6px 8px;text-align:left'>Obat</th>"
+      +"<th style='padding:6px 8px;text-align:left'>Tensi</th>"
+      +"<th style='padding:6px 8px;text-align:left'>Kader</th>"
+      +"<th style='padding:6px 8px;text-align:left'>Kunjungan</th>"
+      +"</tr></thead>"
+      +"<tbody>"+buatBaris(list)+"</tbody>"
+      +"</table>";
+  }
+
+  var laporan = "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'>"
+    +"<title>Laporan Lansia</title>"
+    +"<style>"
+    +"body{font-family:Segoe UI,sans-serif;padding:32px;color:#1a2e1a;font-size:13px}"
+    +".kop{text-align:center;border-bottom:3px solid #2d5a27;padding-bottom:16px;margin-bottom:20px}"
+    +".kop h1{font-size:18px;color:#2d5a27}"
+    +".kop p{font-size:12px;color:#555;margin-top:4px}"
+    +".summary{display:flex;gap:16px;margin-bottom:24px}"
+    +".box{flex:1;border:1.5px solid #ddd;border-radius:8px;padding:12px;text-align:center}"
+    +".num{font-size:28px;font-weight:700}"
+    +".lbl{font-size:11px;color:#666;margin-top:2px}"
+    +".sec{font-size:13px;font-weight:700;padding:6px 10px;border-radius:6px;margin:20px 0 4px;color:#fff}"
+    +".footer{margin-top:32px;padding-top:12px;border-top:1px solid #ddd;font-size:11px;color:#888;display:flex;justify-content:space-between}"
+    +"</style></head><body>"
+    +"<div class='kop'><h1>Laporan Kesehatan Lansia Desa Sukamaju</h1>"
+    +"<p>Dicetak tanggal "+tgl+" - Total: "+dataLansia.length+" lansia - KKN 2024</p></div>"
+    +"<div class='summary'>"
+    +"<div class='box'><div class='num' style='color:#4caf50'>"+sehat.length+"</div><div class='lbl'>Sehat</div></div>"
+    +"<div class='box'><div class='num' style='color:#ff9800'>"+perhatian.length+"</div><div class='lbl'>Perlu Perhatian</div></div>"
+    +"<div class='box'><div class='num' style='color:#f44336'>"+kritis.length+"</div><div class='lbl'>Kritis</div></div>"
+    +"<div class='box'><div class='num' style='color:#2d5a27'>"+dataLansia.length+"</div><div class='lbl'>Total</div></div>"
+    +"</div>"
+    +"<div class='sec' style='background:#f44336'>Kondisi Kritis ("+kritis.length+" lansia)</div>"+buatTabel(kritis)
+    +"<div class='sec' style='background:#ff9800'>Perlu Perhatian ("+perhatian.length+" lansia)</div>"+buatTabel(perhatian)
+    +"<div class='sec' style='background:#4caf50'>Sehat ("+sehat.length+" lansia)</div>"+buatTabel(sehat)
+    +"<div class='footer'><span>Sistem Pemantauan Lansia - KKN 2024</span><span>Desa Sukamaju</span></div>"
+    +"</body></html>";
+
+  var w = window.open("","_blank","width=900,height=700");
+  w.document.write(laporan);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 500);
+}
+
+// INIT
+updateStats();
+renderSidebar();
+</script>
+</body>
+</html>
